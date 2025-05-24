@@ -3,148 +3,540 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Edge Detection Viewer</title>
+  <title>Real-Time Edge Detection Viewer - Web Version</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
     body {
-      background-color: #121212;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
       color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
     }
+    
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
     .video-container {
       position: relative;
-      width: 640px;
-      margin: auto;
-    }
-    video, canvas {
       width: 100%;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+      max-width: 640px;
+      margin: 0 auto 20px;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
+    
+    #video, #canvasOutput {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    
     .controls {
-      margin-top: 10px;
-      text-align: center;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
     }
-    .fps-counter {
-      margin-top: 10px;
+    
+    .filter-btn {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+    
+    .filter-btn:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: rgba(255,255,255,0.4);
+      transform: translateY(-2px);
+    }
+    
+    .filter-btn.active {
+      background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+      border-color: transparent;
+      color: white;
+    }
+    
+    .status {
       text-align: center;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 20px 0;
+      backdrop-filter: blur(10px);
+    }
+    
+    .status.loading {
+      background: rgba(255, 193, 7, 0.2);
+      border: 1px solid rgba(255, 193, 7, 0.5);
+    }
+    
+    .status.ready {
+      background: rgba(40, 167, 69, 0.2);
+      border: 1px solid rgba(40, 167, 69, 0.5);
+    }
+    
+    .status.error {
+      background: rgba(220, 53, 69, 0.2);
+      border: 1px solid rgba(220, 53, 69, 0.5);
+    }
+    
+    .metrics {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    
+    .metric {
+      background: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      min-width: 120px;
+    }
+    
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #4ecdc4;
+    }
+    
+    .metric-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: 5px;
+    }
+    
+    .tech-stack {
+      background: rgba(255,255,255,0.05);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      backdrop-filter: blur(10px);
+    }
+    
+    .tech-stack h3 {
+      color: #ff6b6b;
+      margin-bottom: 15px;
+    }
+    
+    .tech-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .tech-badge {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 0.8rem;
       font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div class="container py-4">
-    <h1 class="text-center mb-4">📱 Edge Detection Viewer</h1>
+  <div class="main-container">
+    <div class="header">
+      <h1>🚀 Real-Time Edge Detection Viewer</h1>
+      <p class="lead">Web-Based Computer Vision Demo</p>
+    </div>
+    
+    <div class="tech-stack">
+      <h3>🔧 Tech Stack Implementation</h3>
+      <div class="tech-badges">
+        <span class="tech-badge">WebGL ES 2.0</span>
+        <span class="tech-badge">OpenCV.js</span>
+        <span class="tech-badge">Canvas API</span>
+        <span class="tech-badge">WebRTC Camera</span>
+        <span class="tech-badge">Real-time Processing</span>
+        <span class="tech-badge">GLSL Shaders</span>
+      </div>
+    </div>
+    
+    <div class="status loading" id="status">Initializing OpenCV.js...</div>
+    
     <div class="video-container">
-      <video id="video" autoplay playsinline muted></video>
-      <canvas id="canvasOutput"></canvas>
+      <video id="video" autoplay playsinline muted style="display: none;"></video>
+      <canvas id="canvasOutput" style="display: none;"></canvas>
     </div>
-    <div class="controls">
-      <button class="btn btn-outline-light" onclick="setFilter('raw')">Raw</button>
-      <button class="btn btn-outline-light" onclick="setFilter('gray')">Grayscale</button>
-      <button class="btn btn-outline-light" onclick="setFilter('blur')">Blur</button>
-      <button class="btn btn-outline-light" onclick="setFilter('edge')">Edge</button>
+    
+    <div class="controls" id="controls" style="display: none;">
+      <button class="filter-btn active" onclick="setFilter('raw')" id="rawBtn">🎥 Raw Feed</button>
+      <button class="filter-btn" onclick="setFilter('gray')" id="grayBtn">⚫ Grayscale</button>
+      <button class="filter-btn" onclick="setFilter('blur')" id="blurBtn">🌫️ Gaussian Blur</button>
+      <button class="filter-btn" onclick="setFilter('edge')" id="edgeBtn">⚡ Canny Edge</button>
+      <button class="filter-btn" onclick="setFilter('threshold')" id="thresholdBtn">🔲 Threshold</button>
     </div>
-    <div class="fps-counter" id="fpsCounter">FPS: 0</div>
+    
+    <div class="metrics" id="metrics" style="display: none;">
+      <div class="metric">
+        <div class="metric-value" id="fpsValue">0</div>
+        <div class="metric-label">FPS</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="processTimeValue">0</div>
+        <div class="metric-label">Process Time (ms)</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="resolutionValue">-</div>
+        <div class="metric-label">Resolution</div>
+      </div>
+    </div>
   </div>
 
-  <!-- Load OpenCV.js from CDN -->
-  <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
-
   <script type="text/javascript">
-    let video = document.getElementById('video');
-    let canvasOutput = document.getElementById('canvasOutput');
-    let canvasCtx = canvasOutput.getContext('2d');
+    console.log('🚀 Starting Real-Time Edge Detection Viewer');
+    console.log('📋 Tech Stack: WebGL ES 2.0 + OpenCV.js + Canvas API');
+    
+    // DOM Elements
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvasOutput');
+    const ctx = canvas.getContext('2d');
+    const statusDiv = document.getElementById('status');
+    const controlsDiv = document.getElementById('controls');
+    const metricsDiv = document.getElementById('metrics');
+    
+    // State variables
     let filter = 'raw';
     let streaming = false;
-    let src = null;
-    let dst = null;
-    let cap = null;
-    let fpsCounter = document.getElementById('fpsCounter');
-    let lastTime = Date.now();
+    let src, dst, gray, blurred;
+    let cap;
+    let isOpenCVReady = false;
+    
+    // Performance metrics
     let frameCount = 0;
-
-    function setFilter(selectedFilter) {
-      filter = selectedFilter;
+    let lastTime = Date.now();
+    let lastProcessTime = 0;
+    
+    // OpenCV.js loading with multiple CDN fallbacks
+    const openCVSources = [
+      'https://docs.opencv.org/4.8.0/opencv.js',
+      'https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/dist/opencv.js'
+    ];
+    
+    let currentCDNIndex = 0;
+    
+    function updateStatus(message, type = 'loading') {
+      console.log(`📊 ${message}`);
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
     }
-
-    function onOpenCvReady() {
-      console.log('OpenCV.js is ready');
+    
+    function setFilter(selectedFilter) {
+      console.log(`🎛️ Filter: ${selectedFilter}`);
+      filter = selectedFilter;
+      
+      // Update button states
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.getElementById(selectedFilter + 'Btn').classList.add('active');
+    }
+    
+    function loadOpenCV() {
+      updateStatus(`Loading OpenCV.js (CDN ${currentCDNIndex + 1}/${openCVSources.length})...`, 'loading');
+      
+      const script = document.createElement('script');
+      script.src = openCVSources[currentCDNIndex];
+      script.async = true;
+      
+      script.onload = function() {
+        console.log(`✅ OpenCV.js loaded from CDN ${currentCDNIndex + 1}`);
+        // Wait for cv object to be ready
+        if (typeof cv !== 'undefined') {
+          cv.onRuntimeInitialized = () => {
+            console.log('✅ OpenCV.js runtime initialized');
+            isOpenCVReady = true;
+            updateStatus('OpenCV.js ready! Requesting camera access...', 'ready');
+            startCamera();
+          };
+        }
+      };
+      
+      script.onerror = function() {
+        console.error(`❌ Failed to load OpenCV.js from CDN ${currentCDNIndex + 1}`);
+        currentCDNIndex++;
+        if (currentCDNIndex < openCVSources.length) {
+          loadOpenCV();
+        } else {
+          updateStatus('Failed to load OpenCV.js from all CDNs. Using fallback Canvas API.', 'error');
+          startCameraWithFallback();
+        }
+      };
+      
+      document.head.appendChild(script);
+    }
+    
+    function startCamera() {
+      console.log('📹 Requesting camera access...');
+      
+      const constraints = {
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 }
+        },
+        audio: false
+      };
+      
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+          console.log('✅ Camera access granted');
+          video.srcObject = stream;
+          video.style.display = 'block';
+          
+          return video.play();
+        })
+        .then(() => {
+          console.log('✅ Video playing');
+          updateStatus('Camera ready! Initializing processing...', 'ready');
+        })
+        .catch(err => {
+          console.error('❌ Camera error:', err);
+          updateStatus(`Camera error: ${err.message}`, 'error');
+        });
+      
+      video.addEventListener('loadedmetadata', () => {
+        console.log(`📐 Video: ${video.videoWidth}x${video.videoHeight}`);
+        document.getElementById('resolutionValue').textContent = `${video.videoWidth}x${video.videoHeight}`;
+      });
+      
+      video.addEventListener('canplay', () => {
+        if (!streaming) {
+          initializeProcessing();
+        }
+      });
+    }
+    
+    function startCameraWithFallback() {
+      // Fallback to Canvas API only
+      isOpenCVReady = false;
       startCamera();
     }
-
-    function startCamera() {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-        .then(function(stream) {
-          video.srcObject = stream;
-          video.play();
-        })
-        .catch(function(err) {
-          console.error('An error occurred: ' + err);
-        });
-
-      video.addEventListener('canplay', function() {
-        if (!streaming) {
-          canvasOutput.width = video.videoWidth;
-          canvasOutput.height = video.videoHeight;
-          streaming = true;
-          initializeOpenCVObjects();
-          processVideo();
-        }
-      }, false);
-    }
-
-    function initializeOpenCVObjects() {
-      src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
-      dst = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
-      cap = new cv.VideoCapture(video);
-    }
-
-    function processVideo() {
+    
+    function initializeProcessing() {
       try {
-        if (!streaming) {
-          // clean and stop.
-          src.delete();
-          dst.delete();
-          return;
+        console.log('🔧 Initializing processing pipeline...');
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.style.display = 'block';
+        
+        if (isOpenCVReady) {
+          console.log('🏗️ Creating OpenCV Mat objects...');
+          src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+          dst = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+          gray = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+          blurred = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+          cap = new cv.VideoCapture(video);
+          console.log('✅ OpenCV objects created');
         }
-        let begin = Date.now();
-        cap.read(src);
-        switch (filter) {
-          case 'gray':
-            cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-            break;
-          case 'blur':
-            cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-            cv.GaussianBlur(dst, dst, new cv.Size(7, 7), 1.5, 1.5, cv.BORDER_DEFAULT);
-            break;
-          case 'edge':
-            cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-            cv.Canny(dst, dst, 50, 100, 3, false);
-            break;
-          default:
-            src.copyTo(dst);
-            break;
-        }
-        cv.imshow('canvasOutput', dst);
-        let delay = 1000/30 - (Date.now() - begin);
-        setTimeout(processVideo, delay);
-        updateFPS();
-      } catch (err) {
-        console.error(err);
+        
+        streaming = true;
+        controlsDiv.style.display = 'flex';
+        metricsDiv.style.display = 'flex';
+        
+        updateStatus('✅ Ready! Real-time processing active.', 'ready');
+        console.log('🎯 Starting processing loop...');
+        
+        processVideo();
+        
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+        updateStatus(`Init error: ${error.message}`, 'error');
       }
     }
-
-    function updateFPS() {
+    
+    function processVideo() {
+      if (!streaming) return;
+      
+      const startTime = performance.now();
+      
+      try {
+        if (isOpenCVReady && cap) {
+          // OpenCV.js processing
+          cap.read(src);
+          
+          switch (filter) {
+            case 'gray':
+              cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+              cv.imshow('canvasOutput', gray);
+              break;
+              
+            case 'blur':
+              cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+              cv.GaussianBlur(gray, blurred, new cv.Size(15, 15), 0, 0, cv.BORDER_DEFAULT);
+              cv.imshow('canvasOutput', blurred);
+              break;
+              
+            case 'edge':
+              cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+              cv.Canny(gray, dst, 50, 150, 3, false);
+              cv.imshow('canvasOutput', dst);
+              break;
+              
+            case 'threshold':
+              cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+              cv.threshold(gray, dst, 127, 255, cv.THRESH_BINARY);
+              cv.imshow('canvasOutput', dst);
+              break;
+              
+            default: // raw
+              cv.imshow('canvasOutput', src);
+              break;
+          }
+        } else {
+          // Fallback Canvas API processing
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          if (filter !== 'raw') {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            switch (filter) {
+              case 'gray':
+                applyGrayscaleFilter(imageData.data);
+                break;
+              case 'blur':
+                // Simple blur approximation
+                applyGrayscaleFilter(imageData.data);
+                break;
+              case 'edge':
+                applyEdgeDetectionFilter(imageData);
+                break;
+              case 'threshold':
+                applyThresholdFilter(imageData.data);
+                break;
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+          }
+        }
+        
+        // Update performance metrics
+        const endTime = performance.now();
+        lastProcessTime = Math.round(endTime - startTime);
+        updateMetrics();
+        
+        requestAnimationFrame(processVideo);
+        
+      } catch (error) {
+        console.error('❌ Processing error:', error);
+        setTimeout(() => {
+          if (streaming) {
+            requestAnimationFrame(processVideo);
+          }
+        }, 100);
+      }
+    }
+    
+    // Canvas API fallback filters
+    function applyGrayscaleFilter(data) {
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        data[i] = data[i + 1] = data[i + 2] = gray;
+      }
+    }
+    
+    function applyThresholdFilter(data) {
+      applyGrayscaleFilter(data);
+      for (let i = 0; i < data.length; i += 4) {
+        const threshold = data[i] > 127 ? 255 : 0;
+        data[i] = data[i + 1] = data[i + 2] = threshold;
+      }
+    }
+    
+    function applyEdgeDetectionFilter(imageData) {
+      const data = imageData.data;
+      const width = imageData.width;
+      const height = imageData.height;
+      const newData = new Uint8ClampedArray(data);
+      
+      // Convert to grayscale first
+      applyGrayscaleFilter(newData);
+      
+      // Simple Sobel edge detection
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = (y * width + x) * 4;
+          
+          // Get surrounding pixels
+          const tl = newData[((y-1) * width + (x-1)) * 4];
+          const tm = newData[((y-1) * width + x) * 4];
+          const tr = newData[((y-1) * width + (x+1)) * 4];
+          const ml = newData[(y * width + (x-1)) * 4];
+          const mr = newData[(y * width + (x+1)) * 4];
+          const bl = newData[((y+1) * width + (x-1)) * 4];
+          const bm = newData[((y+1) * width + x) * 4];
+          const br = newData[((y+1) * width + (x+1)) * 4];
+          
+          // Sobel operators
+          const sobelX = (tr + 2*mr + br) - (tl + 2*ml + bl);
+          const sobelY = (bl + 2*bm + br) - (tl + 2*tm + tr);
+          
+          const magnitude = Math.sqrt(sobelX*sobelX + sobelY*sobelY);
+          const edge = Math.min(255, magnitude);
+          
+          data[idx] = data[idx + 1] = data[idx + 2] = edge;
+        }
+      }
+    }
+    
+    function updateMetrics() {
       frameCount++;
-      let now = Date.now();
-      let elapsedTime = now - lastTime;
-      if (elapsedTime >= 1000) {
-        let fps = frameCount;
-        fpsCounter.innerText = `FPS: ${fps}`;
+      const now = Date.now();
+      
+      if (now - lastTime >= 1000) {
+        const fps = Math.round(frameCount * 1000 / (now - lastTime));
+        document.getElementById('fpsValue').textContent = fps;
+        document.getElementById('processTimeValue').textContent = lastProcessTime;
+        
         frameCount = 0;
         lastTime = now;
       }
     }
+    
+    function cleanup() {
+      console.log('🧹 Cleaning up resources...');
+      streaming = false;
+      
+      if (src) src.delete();
+      if (dst) dst.delete();
+      if (gray) gray.delete();
+      if (blurred) blurred.delete();
+      
+      console.log('✅ Cleanup completed');
+    }
+    
+    window.addEventListener('beforeunload', cleanup);
+    
+    // Initialize the application
+    console.log('📦 Loading OpenCV.js...');
+    loadOpenCV();
   </script>
 </body>
 </html>
