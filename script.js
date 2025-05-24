@@ -2,8 +2,12 @@ let video = document.getElementById('video');
 let canvasOut = document.getElementById('canvasOut');
 let ctxOut = canvasOut.getContext('2d');
 let streaming = false;
+let cap = null;
 
+// Called once OpenCV.js is ready
 function onOpenCvReady() {
+  console.log('OpenCV.js is ready');
+
   navigator.mediaDevices.getUserMedia({ video: true })
     .then(stream => {
       video.srcObject = stream;
@@ -14,38 +18,38 @@ function onOpenCvReady() {
   video.addEventListener('canplay', () => {
     if (!streaming) {
       streaming = true;
-      processVideo();
+
+      // Ensure OpenCV constructs are ready before using
+      setTimeout(() => {
+        cap = new cv.VideoCapture(video);
+        processVideo();
+      }, 100);  // short delay to ensure webcam feed stabilizes
     }
   });
 }
 
 function processVideo() {
-  if (!streaming) return;
+  if (!streaming || !cap) return;
 
-  // Read frame into OpenCV Mat
-  let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+  let src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
   let gray = new cv.Mat();
   let edges = new cv.Mat();
-  let cap = new cv.VideoCapture(video);
 
-  cap.read(src);
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-  cv.Canny(gray, edges, 50, 100);
+  try {
+    cap.read(src);
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    cv.Canny(gray, edges, 50, 100);
+    cv.cvtColor(edges, src, cv.COLOR_GRAY2RGBA);
 
-  // Convert to RGBA and draw
-  cv.cvtColor(edges, src, cv.COLOR_GRAY2RGBA);
-  let imgData = new ImageData(
-    new Uint8ClampedArray(src.data),
-    src.cols,
-    src.rows
-  );
-  ctxOut.putImageData(imgData, 0, 0);
+    let imgData = new ImageData(new Uint8ClampedArray(src.data), src.cols, src.rows);
+    ctxOut.putImageData(imgData, 0, 0);
 
-  // Schedule next frame
-  requestAnimationFrame(processVideo);
-
-  // Clean up
-  src.delete();
-  gray.delete();
-  edges.delete();
+    requestAnimationFrame(processVideo);
+  } catch (err) {
+    console.error("OpenCV processing error:", err);
+  } finally {
+    src.delete();
+    gray.delete();
+    edges.delete();
+  }
 }
