@@ -78,6 +78,8 @@ No build steps, no dependencies—just a static site.
 
 ![Demo Image](image.png)
 
+![Demo Image 2](image-1.png)
+
 ---
 
 ## 6. How this maps to the original grading rubric
