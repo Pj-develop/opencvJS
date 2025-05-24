@@ -1,0 +1,16 @@
+body {
+  background: url('https://www.androidauthority.com/wp-content/uploads/2020/11/android-11-review-android-logo-hero-1-scaled.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: white;
+}
+
+video, canvas {
+  border: 2px solid #28a745;
+  border-radius: 0.5rem;
+  background: black;
+}
+
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5);
+}
