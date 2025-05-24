@@ -1,343 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Real-Time Edge Detection Viewer - Web Version</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Real-Time Edge Detection Viewer</title>
 
-  <!-- ✨  Styling  -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
-    body{
-      background:linear-gradient(135deg,#1a1a2e,#16213e);
-      color:#fff;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh
-    }
-    .main-container{max-width:1200px;margin:0 auto;padding:20px}
-    .header{text-align:center;margin-bottom:30px}
-    .header h1{background:linear-gradient(45deg,#ff6b6b,#4ecdc4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:2.5rem;font-weight:bold;margin-bottom:10px}
-    .video-container{position:relative;width:100%;max-width:640px;margin:0 auto 20px;border-radius:15px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.3)}
-    #video,#canvasOutput{width:100%;height:auto;display:block}
-    .controls{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:20px 0}
-    .filter-btn{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);color:#fff;padding:10px 20px;border-radius:25px;transition:.3s;backdrop-filter:blur(10px)}
-    .filter-btn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4);transform:translateY(-2px)}
-    .filter-btn.active{background:linear-gradient(45deg,#ff6b6b,#4ecdc4);border-color:transparent;color:#fff}
-    .status{text-align:center;padding:15px;border-radius:10px;margin:20px 0;backdrop-filter:blur(10px)}
-    .status.loading{background:rgba(255,193,7,.2);border:1px solid rgba(255,193,7,.5)}
-    .status.ready{background:rgba(40,167,69,.2);border:1px solid rgba(40,167,69,.5)}
-    .status.error{background:rgba(220,53,69,.2);border:1px solid rgba(220,53,69,.5)}
-    .metrics{display:flex;justify-content:center;gap:30px;margin:20px 0;flex-wrap:wrap}
-    .metric{background:rgba(255,255,255,.1);padding:15px;border-radius:10px;text-align:center;backdrop-filter:blur(10px);min-width:120px}
-    .metric-value{font-size:1.5rem;font-weight:bold;color:#4ecdc4}
-    .metric-label{font-size:.9rem;opacity:.8;margin-top:5px}
-    .tech-stack{background:rgba(255,255,255,.05);padding:20px;border-radius:10px;margin:20px 0;backdrop-filter:blur(10px)}
-    .tech-stack h3{color:#ff6b6b;margin-bottom:15px}
-    .tech-badges{display:flex;flex-wrap:wrap;gap:10px}
-    .tech-badge{background:linear-gradient(45deg,#667eea,#764ba2);padding:5px 12px;border-radius:15px;font-size:.8rem;font-weight:bold}
+  /* ------- identical visual CSS (shortened) ------------------ */
+  body{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;min-height:100vh}
+  .main-container{max-width:1200px;margin:0 auto;padding:20px}
+  .header{text-align:center;margin-bottom:30px}.header h1{background:linear-gradient(45deg,#ff6b6b,#4ecdc4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:2.5rem;font-weight:700;margin-bottom:10px}
+  .video-container{position:relative;width:100%;max-width:640px;margin:0 auto 20px;border-radius:15px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+  #video,#canvasOutput{width:100%;height:auto;display:block}
+  .controls{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:20px 0}
+  .filter-btn{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);color:#fff;padding:10px 20px;border-radius:25px;transition:.3s;backdrop-filter:blur(10px)}
+  .filter-btn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4);transform:translateY(-2px)}
+  .filter-btn.active{background:linear-gradient(45deg,#ff6b6b,#4ecdc4);border-color:transparent}
+  .status{margin:20px 0;text-align:center;padding:15px;border-radius:10px;backdrop-filter:blur(10px)}
+  .status.loading{background:rgba(255,193,7,.2);border:1px solid rgba(255,193,7,.5)}
+  .status.ready{background:rgba(40,167,69,.2);border:1px solid rgba(40,167,69,.5)}
+  .status.error{background:rgba(220,53,69,.2);border:1px solid rgba(220,53,69,.5)}
+  .metrics{display:flex;justify-content:center;gap:30px;margin:20px 0;flex-wrap:wrap}
+  .metric{background:rgba(255,255,255,.1);padding:15px;border-radius:10px;min-width:120px;text-align:center;backdrop-filter:blur(10px)}
+  .metric-value{font-size:1.5rem;font-weight:700;color:#4ecdc4}
+  .metric-label{font-size:.9rem;opacity:.8;margin-top:5px}
   </style>
 </head>
 <body>
-  <div class="main-container">
-    <div class="header">
-      <h1>🚀 Real-Time Edge Detection Viewer</h1>
-      <p class="lead">Web-Based Computer Vision Demo</p>
-    </div>
-
-    <!-- tech stack -->
-    <div class="tech-stack">
-      <h3>🔧 Tech Stack Implementation</h3>
-      <div class="tech-badges">
-        <span class="tech-badge">WebGL ES 2.0</span>
-        <span class="tech-badge">OpenCV.js</span>
-        <span class="tech-badge">Canvas API</span>
-        <span class="tech-badge">WebRTC Camera</span>
-        <span class="tech-badge">Real-time Processing</span>
-        <span class="tech-badge">GLSL Shaders</span>
-      </div>
-    </div>
-
-    <div class="status loading" id="status">Initializing OpenCV.js...</div>
-
-    <div class="video-container">
-      <video id="video" autoplay playsinline muted style="display:none;"></video>
-      <canvas id="canvasOutput" style="display:none;"></canvas>
-    </div>
-
-    <!-- controls -->
-    <div class="controls" id="controls" style="display:none;">
-      <button class="filter-btn active" onclick="setFilter('raw')"        id="rawBtn">🎥 Raw Feed</button>
-      <button class="filter-btn"        onclick="setFilter('gray')"       id="grayBtn">⚫ Grayscale</button>
-      <button class="filter-btn"        onclick="setFilter('blur')"       id="blurBtn">🌫️ Gaussian Blur</button>
-      <button class="filter-btn"        onclick="setFilter('edge')"       id="edgeBtn">⚡ Canny Edge</button>
-      <button class="filter-btn"        onclick="setFilter('threshold')"  id="thresholdBtn">🔲 Threshold</button>
-    </div>
-
-    <!-- metrics -->
-    <div class="metrics" id="metrics" style="display:none;">
-      <div class="metric"><div class="metric-value" id="fpsValue">0</div><div class="metric-label">FPS</div></div>
-      <div class="metric"><div class="metric-value" id="processTimeValue">0</div><div class="metric-label">Process Time (ms)</div></div>
-      <div class="metric"><div class="metric-value" id="resolutionValue">-</div><div class="metric-label">Resolution</div></div>
-    </div>
+<div class="main-container">
+  <div class="header">
+    <h1>🚀 Real-Time Edge Detection Viewer</h1>
+    <p class="lead">Web-based Computer-Vision Demo</p>
   </div>
 
-  <!-- ========================================================= -->
-  <!-- JavaScript                                               -->
-  <!-- ========================================================= -->
-  <script>
-    console.log('🚀 Starting Real-Time Edge Detection Viewer');
-    console.log('📋 Tech Stack: WebGL ES 2.0 + OpenCV.js + Canvas API');
+  <div class="status loading" id="status">Initializing OpenCV.js…</div>
 
-    // DOM elements
-    const video   = document.getElementById('video');
-    const canvas  = document.getElementById('canvasOutput');
-    const ctx     = canvas.getContext('2d');
-    const statusDiv   = document.getElementById('status');
-    const controlsDiv = document.getElementById('controls');
-    const metricsDiv  = document.getElementById('metrics');
+  <div class="video-container">
+    <video id="video" autoplay playsinline muted style="display:none;"></video>
+    <canvas id="canvasOutput" style="display:none;"></canvas>
+  </div>
 
-    // State
-    let filter   = 'raw';
-    let streaming = false;
-    let src, dst, gray, blurred, cap;
-    let isOpenCVReady = false;
+  <div class="controls" id="controls" style="display:none;">
+    <button class="filter-btn active" onclick="setFilter('raw')"       id="rawBtn">🎥 Raw</button>
+    <button class="filter-btn"        onclick="setFilter('gray')"      id="grayBtn">⚫ Gray</button>
+    <button class="filter-btn"        onclick="setFilter('blur')"      id="blurBtn">🌫️ Blur</button>
+    <button class="filter-btn"        onclick="setFilter('edge')"      id="edgeBtn">⚡ Edge</button>
+    <button class="filter-btn"        onclick="setFilter('threshold')" id="thresholdBtn">🔲 Thresh</button>
+  </div>
 
-    // performance
-    let frameCount = 0;
-    let lastTime   = Date.now();
-    let lastProcessTime = 0;
+  <div class="metrics" id="metrics" style="display:none;">
+    <div class="metric"><div class="metric-value" id="fpsValue">0</div><div class="metric-label">FPS</div></div>
+    <div class="metric"><div class="metric-value" id="processTimeValue">0</div><div class="metric-label">ms</div></div>
+    <div class="metric"><div class="metric-value" id="resolutionValue">-</div><div class="metric-label">Res</div></div>
+  </div>
+</div>
 
-    // multiple CDN fallback
-    const openCVSources = [
-      'https://docs.opencv.org/4.8.0/opencv.js',
-      'https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/dist/opencv.js'
-    ];
-    let currentCDN = 0;
+<script>
+/* ========== DOM refs ========================================= */
+const video   = document.getElementById('video');
+const canvas  = document.getElementById('canvasOutput');
+const ctx     = canvas.getContext('2d');
+const statusD = document.getElementById('status');
+const controls= document.getElementById('controls');
+const metrics = document.getElementById('metrics');
 
-    // helpers ----------------------------------------------------
-    function updateStatus(msg, cls = 'loading') {
-      console.log('📊', msg);
-      statusDiv.textContent = msg;
-      statusDiv.className = `status ${cls}`;
-    }
-    function setFilter(f) {
-      filter = f;
-      document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-      document.getElementById(f+'Btn').classList.add('active');
-      console.log('🎛️ Filter:', f);
-    }
+/* ========== state ============================================ */
+let filter='raw', streaming=false;
+let src,dst,gray,blurred,cap;
+let isOpenCV=false;
+let frameCnt=0,lastT=Date.now(),lastProc=0;
 
-    // load OpenCV -----------------------------------------------
-    function loadOpenCV() {
-      updateStatus(`Loading OpenCV.js (CDN ${currentCDN+1}/${openCVSources.length})...`);
-      const s = document.createElement('script');
-      s.src   = openCVSources[currentCDN];
-      s.async = true;
-      s.onload = () => {
-        console.log(`✅ OpenCV.js loaded from CDN ${currentCDN+1}`);
-        if (typeof cv !== 'undefined') {
-          cv.onRuntimeInitialized = () => {
-            console.log('✅ OpenCV runtime initialized');
-            isOpenCVReady = true;
-            updateStatus('OpenCV.js ready! Requesting camera access...', 'ready');
-            startCamera();
-          };
-        }
-      };
-      s.onerror = () => {
-        console.error(`❌ Failed to load OpenCV.js from CDN ${currentCDN+1}`);
-        currentCDN++;
-        if (currentCDN < openCVSources.length) loadOpenCV();
-        else {
-          updateStatus('Failed to load OpenCV. Using Canvas fallback.', 'error');
-          startCamera();          // still start camera, but without OpenCV
-        }
-      };
-      document.head.appendChild(s);
-    }
+/* ========== helpers ========================================== */
+function setStatus(msg,cls='loading'){statusD.textContent=msg;statusD.className=`status ${cls}`;}
+function setFilter(f){filter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.getElementById(f+'Btn').classList.add('active');}
 
-    // camera -----------------------------------------------------
-    function startCamera() {
-      console.log('📹 Requesting camera access...');
-      navigator.mediaDevices.getUserMedia({
-        video:{width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}},
-        audio:false
-      }).then(stream=>{
-        console.log('✅ Camera access granted');
-        video.srcObject = stream;
-        video.style.display = 'block';
-        return video.play();
-      }).catch(err=>{
-        console.error('❌ Camera error:', err);
-        updateStatus('Camera error: '+err.message,'error');
-      });
+/* ========== OpenCV loader (two CDNs) ========================= */
+const cdns=['https://docs.opencv.org/4.8.0/opencv.js','https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/dist/opencv.js'];
+let cdn=0;
+(function loadCV(){
+  setStatus(`Loading OpenCV.js (CDN ${cdn+1}/${cdns.length})…`);
+  const s=document.createElement('script');s.src=cdns[cdn];s.async=true;
+  s.onload=()=>{cv.onRuntimeInitialized=()=>{isOpenCV=true;setStatus('OpenCV ready – requesting camera…','ready');startCam();};};
+  s.onerror=()=>{cdn++; if(cdn<cdns.length) loadCV(); else{setStatus('OpenCV failed – Canvas fallback','error');startCam();}};
+  document.head.appendChild(s);
+})();
 
-      // fires when resolution is known – create Mats **here**
-      video.addEventListener('loadedmetadata', ()=>{
-        console.log(`📐 Video: ${video.videoWidth}x${video.videoHeight}`);
-        document.getElementById('resolutionValue').textContent =
-                `${video.videoWidth}x${video.videoHeight}`;
-        if (!streaming) initializeProcessing();
-      });
-    }
+/* ========== camera =========================================== */
+function startCam(){
+  navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}},audio:false})
+  .then(stream=>{video.srcObject=stream;video.play();video.style.display='block';})
+  .catch(e=>setStatus('Camera error: '+e.message,'error'));
 
-    // -----------------------------------------------------------
-    function initializeProcessing() {
-      try {
-        console.log('🔧 Initializing processing pipeline…');
+  video.addEventListener('loadedmetadata',()=>{
+    /* ---- copy real size to width/height attributes --------- */
+    video.width  = video.videoWidth;
+    video.height = video.videoHeight;
+    document.getElementById('resolutionValue').textContent=`${video.width}×${video.height}`;
+    if(!streaming) initProcessing();
+  });
+}
 
-        canvas.width  = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.style.display = 'block';
+/* ========== init ============================================= */
+function buildMats(){
+  if(src){src.delete();dst.delete();gray.delete();blurred.delete();}
+  const h=video.height, w=video.width;
+  src=new cv.Mat(h,w,cv.CV_8UC4);
+  dst=new cv.Mat(h,w,cv.CV_8UC1);
+  gray=new cv.Mat(h,w,cv.CV_8UC1);
+  blurred=new cv.Mat(h,w,cv.CV_8UC1);
+}
+function initProcessing(){
+  canvas.width =video.width; canvas.height=video.height; canvas.style.display='block';
+  if(isOpenCV){buildMats(); cap=new cv.VideoCapture(video);}
+  streaming=true; controls.style.display='flex'; metrics.style.display='flex';
+  setStatus('✅ Ready – processing…','ready'); requestAnimationFrame(loop);
+}
 
-        if (isOpenCVReady) {
-          console.log('🏗️ Creating OpenCV Mat objects…');
-          buildMats();
-          cap = new cv.VideoCapture(video);
-          console.log('✅ OpenCV Mats created');
-        }
-
-        streaming = true;
-        controlsDiv.style.display = 'flex';
-        metricsDiv.style.display  = 'flex';
-        updateStatus('✅ Ready! Real-time processing active.','ready');
-        console.log('🎯 Starting processing loop…');
-
-        processVideo();
-      } catch(e){
-        console.error('❌ Initialization error:', e);
-        updateStatus('Init error: '+e.message,'error');
+/* ========== main loop ======================================== */
+function loop(){
+  if(!streaming)return; const t0=performance.now();
+  try{
+    if(isOpenCV){
+      /* rebuild Mats if size changed (orientation swap etc.) */
+      if(src.rows!==video.height||src.cols!==video.width){buildMats();}
+      cap.read(src);
+      switch(filter){
+        case 'gray': cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.imshow('canvasOutput',gray); break;
+        case 'blur': cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.GaussianBlur(gray,blurred,new cv.Size(15,15),0); cv.imshow('canvasOutput',blurred); break;
+        case 'edge': cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.Canny(gray,dst,50,150); cv.imshow('canvasOutput',dst); break;
+        case 'threshold': cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.threshold(gray,dst,127,255,cv.THRESH_BINARY); cv.imshow('canvasOutput',dst); break;
+        default: cv.imshow('canvasOutput',src);
       }
+    }else{
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
     }
+  }catch(e){console.error('process error',e);}
+  lastProc=Math.round(performance.now()-t0); updateMetrics(); requestAnimationFrame(loop);
+}
 
-    function buildMats(){
-      // helper to (re)allocate Mats matching current video size
-      if (src) { src.delete(); dst.delete(); gray.delete(); blurred.delete(); }
-      const h = video.videoHeight, w = video.videoWidth;
-      src     = new cv.Mat(h, w, cv.CV_8UC4);
-      dst     = new cv.Mat(h, w, cv.CV_8UC1);
-      gray    = new cv.Mat(h, w, cv.CV_8UC1);
-      blurred = new cv.Mat(h, w, cv.CV_8UC1);
-    }
+/* ========== metrics ========================================== */
+function updateMetrics(){
+  frameCnt++; const now=Date.now();
+  if(now-lastT>=1000){document.getElementById('fpsValue').textContent=Math.round(frameCnt*1000/(now-lastT)); document.getElementById('processTimeValue').textContent=lastProc; frameCnt=0;lastT=now;}
+}
 
-    // -----------------------------------------------------------
-    function processVideo() {
-      if (!streaming) return;
-      const t0 = performance.now();
-
-      try {
-        if (isOpenCVReady && cap) {
-          /* --- safety: rebuild Mats if resolution changed -------- */
-          if (src.rows !== video.videoHeight || src.cols !== video.videoWidth)
-            buildMats();
-          /* ------------------------------------------------------- */
-
-          cap.read(src);
-
-          switch(filter){
-            case 'gray':
-              cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-              cv.imshow('canvasOutput', gray);
-              break;
-            case 'blur':
-              cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-              cv.GaussianBlur(gray, blurred, new cv.Size(15,15), 0,0, cv.BORDER_DEFAULT);
-              cv.imshow('canvasOutput', blurred);
-              break;
-            case 'edge':
-              cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-              cv.Canny(gray, dst, 50,150,3,false);
-              cv.imshow('canvasOutput', dst);
-              break;
-            case 'threshold':
-              cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-              cv.threshold(gray, dst, 127,255, cv.THRESH_BINARY);
-              cv.imshow('canvasOutput', dst);
-              break;
-            default: // raw
-              cv.imshow('canvasOutput', src);
-          }
-
-        } else { // Canvas-only fallback --------------------------
-          ctx.drawImage(video,0,0,canvas.width,canvas.height);
-
-          if (filter!=='raw'){
-            const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
-            switch(filter){
-              case 'gray':      applyGrayscale(imageData.data);             break;
-              case 'blur':      applyGrayscale(imageData.data);             break; // very light blur
-              case 'edge':      applyEdge(imageData);                       break;
-              case 'threshold': applyThreshold(imageData.data);             break;
-            }
-            ctx.putImageData(imageData,0,0);
-          }
-        }
-
-        // metrics
-        lastProcessTime = Math.round(performance.now()-t0);
-        updateMetrics();
-
-        requestAnimationFrame(processVideo);
-
-      } catch(err){
-        console.error('❌ Processing error:',err);
-        requestAnimationFrame(processVideo);
-      }
-    }
-
-    // fallback filters ------------------------------------------
-    function applyGrayscale(data){
-      for(let i=0;i<data.length;i+=4){
-        const g = data[i]*.299 + data[i+1]*.587 + data[i+2]*.114;
-        data[i]=data[i+1]=data[i+2]=g;
-      }
-    }
-    function applyThreshold(data){
-      applyGrayscale(data);
-      for(let i=0;i<data.length;i+=4){
-        const v = data[i]>127?255:0;
-        data[i]=data[i+1]=data[i+2]=v;
-      }
-    }
-    function applyEdge(imageData){
-      const d=imageData.data,w=imageData.width,h=imageData.height;
-      const gray=new Uint8ClampedArray(d);
-      applyGrayscale(gray);
-      for(let y=1;y<h-1;y++){
-        for(let x=1;x<w-1;x++){
-          const idx=(y*w+x)*4;
-          const tl=gray[((y-1)*w+(x-1))*4], tm=gray[((y-1)*w+x)*4], tr=gray[((y-1)*w+(x+1))*4];
-          const ml=gray[(y*w+(x-1))*4],     mr=gray[(y*w+(x+1))*4];
-          const bl=gray[((y+1)*w+(x-1))*4], bm=gray[((y+1)*w+x)*4], br=gray[((y+1)*w+(x+1))*4];
-          const gx = (tr+2*mr+br)-(tl+2*ml+bl);
-          const gy = (bl+2*bm+br)-(tl+2*tm+tr);
-          const mag = Math.min(255, Math.sqrt(gx*gx+gy*gy));
-          d[idx]=d[idx+1]=d[idx+2]=mag;
-        }
-      }
-    }
-
-    // metrics ----------------------------------------------------
-    function updateMetrics(){
-      frameCount++;
-      const now=Date.now();
-      if(now-lastTime>=1000){
-        document.getElementById('fpsValue').textContent =
-              Math.round(frameCount*1000/(now-lastTime));
-        document.getElementById('processTimeValue').textContent = lastProcessTime;
-        frameCount=0; lastTime=now;
-      }
-    }
-
-    // cleanup ----------------------------------------------------
-    function cleanup(){
-      console.log('🧹 Cleaning up...');
-      streaming=false;
-      if(src){src.delete();dst.delete();gray.delete();blurred.delete();}
-    }
-    window.addEventListener('beforeunload',cleanup);
-
-    // kick-off ---------------------------------------------------
-    console.log('📦 Loading OpenCV.js…');
-    loadOpenCV();
-  </script>
+/* ========== cleanup ========================================== */
+window.addEventListener('beforeunload',()=>{streaming=false; if(src){src.delete();dst.delete();gray.delete();blurred.delete();}});
+</script>
 </body>
 </html>
